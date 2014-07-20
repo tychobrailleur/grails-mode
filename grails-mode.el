@@ -64,8 +64,7 @@
          (resource-root (concat
                          (file-name-as-directory root)
                          (file-name-as-directory grails/source-dir) resource-type)))
-    (message " Resource root  = %s" resource-root)
-    (find-all-files resource-root "\\.groovy$")))
+    (find-all-files resource-root "\\(\\.groovy$\\|\\.gsp$\\)")))
 
 ;; Controllers.
 
@@ -105,11 +104,32 @@
   (helm-other-buffer '(helm-grails-domain-list)
                      "*helm grails*"))
 
+;; Views
+
+(defun grails/grails-views-list ()
+  (grails/grails-list-of "views"))
+
+(defvar helm-grails-views-list-cache nil)
+(defvar helm-grails-views-list
+  `((name . "Views")
+    (init . (lambda ()
+              (setq helm-grails-views-list-cache (grails/grails-views-list))))
+    (candidates . helm-grails-views-list-cache)
+    (type . file)))
+
+(defun grails/helm-views ()
+  (interactive)
+  (require 'helm-files)
+  (helm-other-buffer '(helm-grails-views-list)
+                     "*helm grails*"))
+
+
 (defun grails/helm-all ()
   (interactive)
   (require 'helm-files)
   (helm-other-buffer '(helm-grails-controllers-list
-                       helm-grails-domain-list)
+                       helm-grails-domain-list
+                       helm-grails-views-list)
                      "*helm grails*"))
 
 
