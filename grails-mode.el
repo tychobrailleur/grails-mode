@@ -137,15 +137,17 @@
 (defun grails/run-current-test ()
   (interactive)
   (cd (grails/find-root (buffer-file-name)))
-  (let ((buffer (get-buffer-create "*grails-test-unit*")))
+  (let ((test-buffer (buffer-name))
+        (buffer (get-buffer-create "*grails-test-unit*")))
     (pop-to-buffer buffer)
     (local-set-key "q" 'kill-this-buffer)
     (local-set-key "Q" 'kill-buffer-and-window)
+    (message "Run test for %s" test-buffer)
     (let ((proc
            (start-process-shell-command
             "*grails-test-unit*"
             buffer
-            "grails" "test-app" (buffer-name) "-debugOut"))))))
+            "grails" "test-app" "unit:" test-buffer "-debugOut" "-plainOutput"))))))
 
 
 ;; Keymap
