@@ -12,10 +12,12 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+;;
+;;
 (setq debug-on-error t)
 
 (require 'cl)
+(require 'helm-files)
 
 (defvar grails-mode "0.1.0")
 
@@ -29,19 +31,14 @@
   :type 'string
   :group 'grails)
 
+(defcustom grails/grails-types '("domain" "controllers" "services" "views")
+  "Types of files."
+  :type 'sexp
+  :group 'grails)
+
 ;; List all the files under directory matching pattern.
 (defun find-all-files (directory pattern)
-  (let (result '())
-    (dolist (entry (directory-files directory nil) result)
-      (let ((current-file (expand-file-name (concat directory "/" entry))))
-        (if (and (file-regular-p current-file)
-                 (string-match pattern current-file))
-            (setq result (cons current-file result))
-          (if (and (directory-p current-file)
-                   (not (or (string= entry ".") (string= entry ".."))))
-              (setq result (append (find-all-files current-file pattern) result))
-            ))))
-    result))
+  (directory-files-recursively directory pattern))
 
 ;; Look for the root of the current grails project.
 (defun grails/find-root (file)
@@ -66,10 +63,21 @@
                          (file-name-as-directory grails/source-dir) resource-type)))
     (find-all-files resource-root "\\(\\.groovy$\\|\\.gsp$\\)")))
 
-;; Controllers.
+(defmacro grails/define-grails-list (name)
+  `(defun ,(intern (concat "grails/grails-" name "-list"))
+       ()
+       (grails/grails-list-of ,name)))
 
-(defun grails/grails-controllers-list ()
-  (grails/grails-list-of "controllers"))
+
+
+(grails/define-grails-list "domain")
+(grails/define-grails-list "controllers")
+(grails/define-grails-list "services")
+(grails/define-grails-list "views")
+
+;;(macroexpand '(grails/define-grails-list "controllers"))
+
+;; Controllers.
 
 (defvar helm-grails-controllers-list-cache nil)
 (defvar helm-grails-controllers-list
@@ -81,14 +89,10 @@
 
 (defun grails/helm-controllers ()
   (interactive)
-  (require 'helm-files)
   (helm-other-buffer '(helm-grails-controllers-list)
                      "*helm grails*"))
 
 ;; Domain
-
-(defun grails/grails-domain-list ()
-  (grails/grails-list-of "domain"))
 
 (defvar helm-grails-domain-list-cache nil)
 (defvar helm-grails-domain-list
@@ -100,14 +104,26 @@
 
 (defun grails/helm-domain ()
   (interactive)
-  (require 'helm-files)
   (helm-other-buffer '(helm-grails-domain-list)
                      "*helm grails*"))
 
-;; Views
+;; Services
 
-(defun grails/grails-views-list ()
-  (grails/grails-list-of "views"))
+(defvar helm-grails-services-list-cache nil)
+(defvar helm-grails-services-list
+  `((name . "Services")
+    (init . (lambda ()
+              (setq helm-grails-services-list-cache (grails/grails-services-list))))
+    (candidates . helm-grails-services-list-cache)
+    (type . file)))
+
+(defun grails/helm-services ()
+  (interactive)
+  (helm-other-buffer '(helm-grails-services-list)
+                     "*helm grails*"))
+
+
+;; Views
 
 (defvar helm-grails-views-list-cache nil)
 (defvar helm-grails-views-list
@@ -119,16 +135,15 @@
 
 (defun grails/helm-views ()
   (interactive)
-  (require 'helm-files)
   (helm-other-buffer '(helm-grails-views-list)
                      "*helm grails*"))
 
 
 (defun grails/helm-all ()
   (interactive)
-  (require 'helm-files)
   (helm-other-buffer '(helm-grails-controllers-list
                        helm-grails-domain-list
+                       helm-grails-services-list
                        helm-grails-views-list)
                      "*helm grails*"))
 
@@ -158,6 +173,8 @@
       (kbd "C-c t") 'grails/run-current-test)
     (define-key keymap
       (kbd "C-c c") 'grails/helm-controllers)
+    (define-key keymap
+      (kbd "C-c s") 'grails/helm-services)
     (define-key keymap
       (kbd "C-c d") 'grails/helm-domain)
     (define-key keymap
